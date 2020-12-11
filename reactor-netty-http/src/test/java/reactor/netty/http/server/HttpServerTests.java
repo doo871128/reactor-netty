@@ -91,25 +91,20 @@ import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.SignalType;
-import reactor.netty.ByteBufFlux;
-import reactor.netty.ChannelBindException;
-import reactor.netty.Connection;
-import reactor.netty.ConnectionObserver;
-import reactor.netty.DisposableServer;
-import reactor.netty.FutureMono;
-import reactor.netty.NettyOutbound;
-import reactor.netty.NettyPipeline;
+import reactor.netty.*;
 import reactor.netty.channel.AbortedException;
 import reactor.netty.http.HttpProtocol;
 import reactor.netty.http.client.HttpClient;
 import reactor.netty.http.client.HttpClientRequest;
 import reactor.netty.http.client.PrematureCloseException;
+import reactor.netty.http.server.logging.AccessLog;
 import reactor.netty.resources.ConnectionProvider;
 import reactor.netty.resources.LoopResources;
 import reactor.netty.tcp.TcpClient;
 import reactor.netty.tcp.TcpServer;
 import reactor.netty.transport.TransportConfig;
 import reactor.test.StepVerifier;
+import reactor.test.util.TestLogger;
 import reactor.util.context.Context;
 import reactor.util.function.Tuple2;
 import reactor.util.function.Tuple3;
@@ -133,6 +128,38 @@ public class HttpServerTests {
 		if (disposableServer != null) {
 			disposableServer.disposeNow();
 		}
+	}
+
+	@Test
+	void testAccessLog() {
+		System.setProperty(ReactorNetty.ACCESS_LOG_ENABLED, "true");
+		TestLogger logger = new TestLogger();
+
+		disposableServer = HttpServer.create()
+				.port(8080)
+				.handle((req, resp) -> req.receive().then(resp.status(200).send()))
+//				.accessLogA(AccessLog.filterFactory(p -> !p.uri().toString().equals("/foo/"))) // replace accessLog / could not be tested
+//				.accessLogB(AccessLog.filterFactory(p -> !p.uri().toString().equals("/foo/"))) // setup factory and active AccessLog
+				.accessLog(AccessLog.withLogger(logger, AccessLog.filterFactory(p -> !p.uri().toString().startsWith("/foo/")))) // to be deprecated
+				.bindNow();
+
+		HttpClient.create()
+				.port(disposableServer.port())
+				.get()
+				.uri("/foo/bar")
+				.responseContent()
+				.aggregate().asString().block();
+
+		HttpClient.create()
+				.port(disposableServer.port())
+				.get()
+				.uri("/example/baz")
+				.responseContent()
+				.aggregate().asString().block();
+
+		assertThat(logger.getOutContent())
+				.contains("/example/baz")
+				.doesNotContain("/foo/bar");
 	}
 
 	@Test

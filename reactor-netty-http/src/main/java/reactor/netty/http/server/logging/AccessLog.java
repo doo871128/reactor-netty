@@ -19,6 +19,8 @@ import reactor.util.Logger;
 import reactor.util.Loggers;
 
 import java.util.Objects;
+import java.util.function.Function;
+import java.util.function.Predicate;
 
 /**
  * Log the http access information.
@@ -27,24 +29,45 @@ import java.util.Objects;
  */
 public final class AccessLog {
 
-	static final Logger log = Loggers.getLogger("reactor.netty.http.server.AccessLog");
+	static final Logger LOG = Loggers.getLogger("reactor.netty.http.server.AccessLog");
 
+	final Logger logger;
 	final String logFormat;
 	final Object[] args;
 
-	private AccessLog(String logFormat, Object... args) {
+	private AccessLog(Logger logger, String logFormat, Object... args) {
 		Objects.requireNonNull(logFormat, "logFormat");
+		this.logger = logger;
 		this.logFormat = logFormat;
 		this.args = args;
 	}
 
 	public static AccessLog create(String logFormat, Object... args) {
-		return new AccessLog(logFormat, args);
+		return new AccessLog(LOG, logFormat, args);
+	}
+
+	public static AccessLog createWithLogger(Logger logger, String logFormat, Object... args) {
+		return new AccessLog(logger, logFormat, args);
+	}
+
+	public static Function<AccessLogArgProvider, AccessLog> defaultFactory(Logger logger) {
+		return BaseAccessLogHandler.DEFAULT_ACCESS_LOG;
+	}
+
+	public static Function<AccessLogArgProvider, AccessLog> filterFactory(Predicate<AccessLogArgProvider> predicate) {
+		return accessLogArgProvider -> predicate.test(accessLogArgProvider) ? BaseAccessLogHandler.DEFAULT_ACCESS_LOG.apply(accessLogArgProvider) : null;
+	}
+
+	public static Function<AccessLogArgProvider, AccessLog> withLogger(Logger logger, Function<AccessLogArgProvider, AccessLog> f){
+		return input -> {
+			AccessLog accessLog = f.apply(input);
+			return accessLog != null ? AccessLog.createWithLogger(logger, accessLog.logFormat, accessLog.args) : null;
+		} ;
 	}
 
 	void log() {
-		if (log.isInfoEnabled()) {
-			log.info(logFormat, args);
+		if (logger.isInfoEnabled()) {
+			logger.info(logFormat, args);
 		}
 	}
 
