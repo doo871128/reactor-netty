@@ -131,38 +131,6 @@ public class HttpServerTests {
 	}
 
 	@Test
-	void testAccessLog() {
-		System.setProperty(ReactorNetty.ACCESS_LOG_ENABLED, "true");
-		TestLogger logger = new TestLogger();
-
-		disposableServer = HttpServer.create()
-				.port(8080)
-				.handle((req, resp) -> req.receive().then(resp.status(200).send()))
-//				.accessLogA(AccessLog.filterFactory(p -> !p.uri().toString().equals("/foo/"))) // replace accessLog / could not be tested
-//				.accessLogB(AccessLog.filterFactory(p -> !p.uri().toString().equals("/foo/"))) // setup factory and active AccessLog
-				.accessLog(AccessLog.withLogger(logger, AccessLog.filterFactory(p -> !p.uri().toString().startsWith("/foo/")))) // to be deprecated
-				.bindNow();
-
-		HttpClient.create()
-				.port(disposableServer.port())
-				.get()
-				.uri("/foo/bar")
-				.responseContent()
-				.aggregate().asString().block();
-
-		HttpClient.create()
-				.port(disposableServer.port())
-				.get()
-				.uri("/example/baz")
-				.responseContent()
-				.aggregate().asString().block();
-
-		assertThat(logger.getOutContent())
-				.contains("/example/baz")
-				.doesNotContain("/foo/bar");
-	}
-
-	@Test
 	public void httpPort() {
 		disposableServer = HttpServer.create()
 		                             .port(8080)

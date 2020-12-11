@@ -15,6 +15,10 @@
  */
 package reactor.netty.http.server.logging;
 
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.classic.spi.LoggingEvent;
+import ch.qos.logback.core.Appender;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.embedded.EmbeddedChannel;
@@ -25,8 +29,14 @@ import io.netty.handler.codec.http2.DefaultHttp2Headers;
 import io.netty.handler.codec.http2.DefaultHttp2HeadersFrame;
 import io.netty.handler.codec.http2.Http2Headers;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Mockito;
+import org.slf4j.LoggerFactory;
 
 import java.net.SocketAddress;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static reactor.netty.http.server.logging.LoggingTests.HEADER_CONNECTION_NAME;
@@ -38,6 +48,70 @@ import static reactor.netty.http.server.logging.LoggingTests.URI;
  * @author limaoning
  */
 class AccessLogHandlerH2Tests {
+
+	@Test
+	void filtering() {
+		// given
+		Function<AccessLogArgProvider, AccessLog> filteringFactory = AccessLog.filterFactory(p -> !String.valueOf(p.uri()).startsWith("/foo/"));
+
+		// assert
+		assertFilteringLog(filteringFactory, logLines -> assertThat(logLines)
+				.hasSize(1)
+				.allSatisfy(logLine -> assertThat(logLine)
+						.contains("GET")
+						.contains("HTTP/2.0")
+						.contains("/example/bar")
+						.doesNotContain("foo")));
+	}
+
+	@Test
+	void filteringAndFormatting() {
+		// given
+		Function<AccessLogArgProvider, AccessLog> filteringFactory = AccessLog.filterAndFormatFactory(p -> !String.valueOf(p.uri()).startsWith("/foo/"),
+				arg -> AccessLog.create("This is HTTP2 {}, uri={}", arg.method(), arg.uri()));
+
+		// assert
+		assertFilteringLog(filteringFactory, logLines -> assertThat(logLines)
+				.containsExactly("[INFO] This is HTTP2 GET, uri=/example/bar"));
+	}
+
+	void assertFilteringLog(Function<AccessLogArgProvider, AccessLog> filteringFactory, Consumer<Stream<String>> assertions) {
+		//given
+		Http2Headers requestFiltered = new DefaultHttp2Headers().method(HttpMethod.GET.name()).path("/foo/example/bar");
+		Http2Headers requestOk = new DefaultHttp2Headers().method(HttpMethod.GET.name()).path("/example/bar");
+
+		// setup
+		@SuppressWarnings("unchecked") Appender<ILoggingEvent> mockedAppender = (Appender<ILoggingEvent>) Mockito.mock(Appender.class);
+		ArgumentCaptor<LoggingEvent> loggingEventArgumentCaptor = ArgumentCaptor.forClass(LoggingEvent.class);
+		Mockito.when(mockedAppender.getName()).thenReturn("MOCK");
+		Logger root = (Logger) LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME);
+		root.addAppender(mockedAppender);
+		Http2Headers responseHeaders1 = new DefaultHttp2Headers().status(HttpResponseStatus.OK.codeAsText());
+		ByteBuf byteBuf1 = Unpooled.buffer(RESPONSE_CONTENT.length)
+		                           .writeBytes(RESPONSE_CONTENT);
+		Http2Headers responseHeaders2 = new DefaultHttp2Headers().status(HttpResponseStatus.OK.codeAsText());
+		ByteBuf byteBuf2 = Unpooled.buffer(RESPONSE_CONTENT.length).writeBytes(RESPONSE_CONTENT);
+
+		try {
+			EmbeddedChannel channel = new EmbeddedChannel();
+			channel.pipeline().addLast(new AccessLogHandlerH2(filteringFactory));
+
+			channel.writeInbound(new DefaultHttp2HeadersFrame(requestFiltered));
+			channel.writeOutbound(new DefaultHttp2HeadersFrame(responseHeaders1));
+			channel.writeOutbound(new DefaultHttp2DataFrame(byteBuf1, true));
+
+			channel.writeInbound(new DefaultHttp2HeadersFrame(requestOk));
+			channel.writeOutbound(new DefaultHttp2HeadersFrame(responseHeaders2));
+			channel.writeOutbound(new DefaultHttp2DataFrame(byteBuf2, true));
+
+			Mockito.verify(mockedAppender, Mockito.atLeastOnce()).doAppend(loggingEventArgumentCaptor.capture());
+
+			assertions.accept(loggingEventArgumentCaptor.getAllValues().stream().map(String::valueOf));
+		}
+		finally {
+			root.detachAppender(mockedAppender);
+		}
+	}
 
 	@Test
 	void accessLogArgs() {

@@ -23,6 +23,7 @@ import java.util.function.BiFunction;
 import java.util.function.BiPredicate;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 
 import io.netty.channel.group.ChannelGroup;
@@ -92,7 +93,8 @@ public abstract class HttpServer extends ServerTransport<HttpServer, HttpServerC
 	}
 
 	/**
-	 * Provide customized access log.
+	 * Customize the access log, provided access logging has been enabled through the
+	 * {@value reactor.netty.ReactorNetty#ACCESS_LOG_ENABLED} system property.
 	 * <p>
 	 * Example:
 	 * <pre>
@@ -109,15 +111,18 @@ public abstract class HttpServer extends ServerTransport<HttpServer, HttpServerC
 	 *           .block();
 	 * }
 	 * </pre>
+	 * <p>
+	 * The {@link AccessLog} class offers several helper methods to generate such a {@link Function},
+	 * notably if one wants to {@link AccessLog#filterFactory(Predicate) filter} some requests out of the access log.
 	 *
-	 * @param accessLog apply an {@link AccessLog} by an {@link AccessLogArgProvider}
+	 * @param accessLogFactory apply an {@link AccessLog} by an {@link AccessLogArgProvider}
 	 * @return a new {@link HttpServer}
 	 * @since 1.0.1
 	 */
-	public final HttpServer accessLog(Function<AccessLogArgProvider, AccessLog> accessLog) {
-		Objects.requireNonNull(accessLog, "accessLog");
+	public final HttpServer accessLog(Function<AccessLogArgProvider, AccessLog> accessLogFactory) {
+		Objects.requireNonNull(accessLogFactory, "accessLogFactory");
 		HttpServer dup = duplicate();
-		dup.configuration().accessLog = accessLog;
+		dup.configuration().accessLog = accessLogFactory;
 		return dup;
 	}
 
