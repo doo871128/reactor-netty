@@ -41,6 +41,7 @@ import reactor.netty.http.Http2SettingsSpec;
 import reactor.netty.http.HttpProtocol;
 import reactor.netty.http.server.logging.AccessLog;
 import reactor.netty.http.server.logging.AccessLogArgProvider;
+import reactor.netty.http.server.logging.AccessLogFactory;
 import reactor.netty.tcp.SslProvider;
 import reactor.netty.tcp.TcpServer;
 import reactor.netty.transport.ServerTransport;
@@ -112,14 +113,52 @@ public abstract class HttpServer extends ServerTransport<HttpServer, HttpServerC
 	 * }
 	 * </pre>
 	 * <p>
-	 * The {@link AccessLog} class offers several helper methods to generate such a {@link Function},
-	 * notably if one wants to {@link AccessLog#filterFactory(Predicate) filter} some requests out of the access log.
+	 * The {@link AccessLogFactory} class offers several helper methods to generate such a {@link Function},
+	 * notably if one wants to {@link AccessLogFactory#createFilter(Predicate) filter} some requests out of the access log.
 	 *
-	 * @param accessLogFactory apply an {@link AccessLog} by an {@link AccessLogArgProvider}
+	 * @param accessLogFactory the {@link Function} that creates an {@link AccessLog} given an {@link AccessLogArgProvider}
 	 * @return a new {@link HttpServer}
 	 * @since 1.0.1
+	 * @deprecated prefer the {@link #accessLogConfiguration(AccessLogFactory) variant} with the {@link AccessLogFactory} interface instead
 	 */
+	@Deprecated
 	public final HttpServer accessLog(Function<AccessLogArgProvider, AccessLog> accessLogFactory) {
+		Objects.requireNonNull(accessLogFactory, "accessLogFactory");
+		HttpServer dup = duplicate();
+		dup.configuration().accessLog = accessLogFactory;
+		return dup;
+	}
+
+	/**
+	 * Customize the access log, provided access logging has been enabled through the
+	 * {@value reactor.netty.ReactorNetty#ACCESS_LOG_ENABLED} system property.
+	 * <p>
+	 * Example:
+	 * <pre>
+	 * {@code
+	 * HttpServer.create()
+	 *           .port(8080)
+	 *           .route(r -> r.get("/hello",
+	 *                   (req, res) -> res.header(CONTENT_TYPE, TEXT_PLAIN)
+	 *                                    .sendString(Mono.just("Hello World!"))))
+	 *           .accessLog(AccessLogFactory.createFilterAndFormat(
+	 *                   args -> String.valueOf(args.uri()).startsWith("/health"),
+	 *                   args -> AccessLog.create("user-agent={}", args.requestHeader("user-agent"))
+	 *           )
+	 *           .bindNow()
+	 *           .onDispose()
+	 *           .block();
+	 * }
+	 * </pre>
+	 * <p>
+	 * The {@link AccessLogFactory} class offers several helper methods to generate such a function,
+	 * notably if one wants to {@link AccessLogFactory#createFilter(Predicate) filter} some requests out of the access log.
+	 *
+	 * @param accessLogFactory the {@link AccessLogFactory} that creates an {@link AccessLog} given an {@link AccessLogArgProvider}
+	 * @return a new {@link HttpServer}
+	 * @since 1.0.3
+	 */
+	public final HttpServer accessLog(AccessLogFactory accessLogFactory) {
 		Objects.requireNonNull(accessLogFactory, "accessLogFactory");
 		HttpServer dup = duplicate();
 		dup.configuration().accessLog = accessLogFactory;
