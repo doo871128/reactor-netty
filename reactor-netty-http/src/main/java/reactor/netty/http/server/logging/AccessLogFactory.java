@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2020 Pivotal Software Inc, All Rights Reserved.
+ * Copyright (c) 2011-Present VMware, Inc. or its affiliates, All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,14 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package reactor.netty.http.server.logging;
 
 import java.util.function.Function;
 import java.util.function.Predicate;
 
-/**
+ /**
  * @author Simon Baslé
+ * @author Audrey Neveu
  */
 public interface AccessLogFactory extends Function<AccessLogArgProvider, AccessLog> {
 
