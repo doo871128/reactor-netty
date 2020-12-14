@@ -21,6 +21,7 @@ import java.util.function.Predicate;
  /**
  * @author Simon Baslé
  * @author Audrey Neveu
+ * @since 1.0.3
  */
 public interface AccessLogFactory extends Function<AccessLogArgProvider, AccessLog> {
 
