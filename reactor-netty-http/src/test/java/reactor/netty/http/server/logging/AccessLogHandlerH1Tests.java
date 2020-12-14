@@ -59,7 +59,7 @@ class AccessLogHandlerH1Tests {
 	@Test
 	void filtering() {
 		// given
-		AccessLogFactory filteringFactory = AccessLogFactory.createFilter(p -> !String.valueOf(p.uri()).startsWith("/foo/"));
+		AccessLogFactory filteringFactory = AccessLogFactory.create(p -> !String.valueOf(p.uri()).startsWith("/foo/"));
 
 		// assert
 		assertFilteringLog(filteringFactory, logLines -> assertThat(logLines)
@@ -74,7 +74,7 @@ class AccessLogHandlerH1Tests {
 	@Test
 	void filteringAndFormatting() {
 		// given
-		AccessLogFactory filteringFactory = AccessLogFactory.createFilterAndFormat(p -> !String.valueOf(p.uri()).startsWith("/foo/"),
+		AccessLogFactory filteringFactory = AccessLogFactory.create(p -> !String.valueOf(p.uri()).startsWith("/foo/"),
 				arg -> AccessLog.create("This is HTTP1 {}, uri={}", arg.method(), arg.uri()));
 
 		// assert

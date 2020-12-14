@@ -19,15 +19,14 @@ import reactor.util.Logger;
 import reactor.util.Loggers;
 
 import java.util.Objects;
-import java.util.function.Function;
-import java.util.function.Predicate;
 
 /**
  * Log the http access information.
  * All logs are written to a Logger named {@code reactor.netty.http.server.AccessLog} at INFO level.
  * <p>
- * This class also exposes convenience methods to create an access log factory to be passed to {@link reactor.netty.http.server.HttpServer#accessLog(Function)}
- * during server configuration. Note that access logging must be globally enabled first for that configuration to
+ * See {@link AccessLogFactory} for convenience methods to create an access log factory to be passed to
+ * {@link reactor.netty.http.server.HttpServer#accessLog(AccessLogFactory)} during server configuration.
+ * Note that access logging must be globally enabled first for that configuration to
  * be taken into account, see the {@link reactor.netty.ReactorNetty#ACCESS_LOG_ENABLED} system property.
  *
  * @author limaoning

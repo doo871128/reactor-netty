@@ -114,7 +114,7 @@ public abstract class HttpServer extends ServerTransport<HttpServer, HttpServerC
 	 * </pre>
 	 * <p>
 	 * The {@link AccessLogFactory} class offers several helper methods to generate such a {@link Function},
-	 * notably if one wants to {@link AccessLogFactory#createFilter(Predicate) filter} some requests out of the access log.
+	 * notably if one wants to {@link AccessLogFactory#create(Predicate) filter} some requests out of the access log.
 	 *
 	 * @param accessLogFactory the {@link Function} that creates an {@link AccessLog} given an {@link AccessLogArgProvider}
 	 * @return a new {@link HttpServer}
@@ -152,7 +152,7 @@ public abstract class HttpServer extends ServerTransport<HttpServer, HttpServerC
 	 * </pre>
 	 * <p>
 	 * The {@link AccessLogFactory} class offers several helper methods to generate such a function,
-	 * notably if one wants to {@link AccessLogFactory#createFilter(Predicate) filter} some requests out of the access log.
+	 * notably if one wants to {@link AccessLogFactory#create(Predicate) filter} some requests out of the access log.
 	 *
 	 * @param accessLogFactory the {@link AccessLogFactory} that creates an {@link AccessLog} given an {@link AccessLogArgProvider}
 	 * @return a new {@link HttpServer}

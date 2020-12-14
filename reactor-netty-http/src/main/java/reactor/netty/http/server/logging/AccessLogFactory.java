@@ -34,7 +34,7 @@ public interface AccessLogFactory extends Function<AccessLogArgProvider, AccessL
 	 * @param predicate the filter that returns {@code true} if the request should be logged, {@code false} otherwise
 	 * @return an access log factory {@link Function} to be used in {@link reactor.netty.http.server.HttpServer#accessLog(Function)}
 	 */
-	static AccessLogFactory createFilter(Predicate<AccessLogArgProvider> predicate) {
+	static AccessLogFactory create(Predicate<AccessLogArgProvider> predicate) {
 		return input -> predicate.test(input) ? BaseAccessLogHandler.DEFAULT_ACCESS_LOG.apply(input) : null;
 	}
 
@@ -56,7 +56,7 @@ public interface AccessLogFactory extends Function<AccessLogArgProvider, AccessL
 	 * and the extraction of relevant arguments
 	 * @return an access log factory {@link Function} to be used in {@link reactor.netty.http.server.HttpServer#accessLog(Function)}
 	 */
-	static AccessLogFactory createFilterAndFormat(Predicate<AccessLogArgProvider> predicate,
+	static AccessLogFactory create(Predicate<AccessLogArgProvider> predicate,
 			Function<AccessLogArgProvider, AccessLog> formatFunction) {
 		return input -> predicate.test(input) ? formatFunction.apply(input) : null;
 	}
