@@ -22,12 +22,18 @@ import java.util.Objects;
 
 /**
  * Log the http access information.
+ * All logs are written to a Logger named {@code reactor.netty.http.server.AccessLog} at INFO level.
+ * <p>
+ * See {@link AccessLogFactory} for convenience methods to create an access log factory to be passed to
+ * {@link reactor.netty.http.server.HttpServer#accessLog(boolean, AccessLogFactory)} during server configuration.
+ * Note that access logging must be globally enabled first for that configuration to
+ * be taken into account, see the {@link reactor.netty.ReactorNetty#ACCESS_LOG_ENABLED} system property.
  *
  * @author limaoning
  */
 public final class AccessLog {
 
-	static final Logger log = Loggers.getLogger("reactor.netty.http.server.AccessLog");
+	static final Logger LOG = Loggers.getLogger("reactor.netty.http.server.AccessLog");
 
 	final String logFormat;
 	final Object[] args;
@@ -43,8 +49,8 @@ public final class AccessLog {
 	}
 
 	void log() {
-		if (log.isInfoEnabled()) {
-			log.info(logFormat, args);
+		if (LOG.isInfoEnabled()) {
+			LOG.info(logFormat, args);
 		}
 	}
 

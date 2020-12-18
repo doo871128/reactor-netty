@@ -91,19 +91,13 @@ import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.SignalType;
-import reactor.netty.ByteBufFlux;
-import reactor.netty.ChannelBindException;
-import reactor.netty.Connection;
-import reactor.netty.ConnectionObserver;
-import reactor.netty.DisposableServer;
-import reactor.netty.FutureMono;
-import reactor.netty.NettyOutbound;
-import reactor.netty.NettyPipeline;
+import reactor.netty.*;
 import reactor.netty.channel.AbortedException;
 import reactor.netty.http.HttpProtocol;
 import reactor.netty.http.client.HttpClient;
 import reactor.netty.http.client.HttpClientRequest;
 import reactor.netty.http.client.PrematureCloseException;
+import reactor.netty.http.server.logging.AccessLog;
 import reactor.netty.resources.ConnectionProvider;
 import reactor.netty.resources.LoopResources;
 import reactor.netty.tcp.TcpClient;
@@ -2312,5 +2306,72 @@ public class HttpServerTests {
 		      .as(StepVerifier::create)
 		      .expectErrorMatches(t -> t instanceof IOException || t instanceof AbortedException)
 		      .verify(Duration.ofSeconds(30));
+	}
+
+	@Test
+	public void accessLogDefaultFormat() {
+		disposableServer = HttpServer.create()
+				.port(8080)
+				.handle((req, resp) -> req.receive().then(resp.status(200).send()))
+				.accessLog(true)
+				.wiretap(true)
+				.bindNow();
+
+		HttpClient.create()
+				.port(disposableServer.port())
+				.wiretap(true)
+				.get()
+				.uri("/test")
+				.responseContent()
+				.aggregate()
+				.asString()
+				.block();
+
+		assertThat(System.getProperty(ReactorNetty.ACCESS_LOG_ENABLED)).isEqualTo("true");
+	}
+
+	@Test
+	public void accessLogCustomFormat() {
+		disposableServer = HttpServer.create()
+				.port(8080)
+				.handle((req, resp) -> req.receive().then(resp.status(200).send()))
+				.accessLog(true, args -> AccessLog.create("method={}, uri={}", args.method(), args.uri()))
+				.wiretap(true)
+				.bindNow();
+
+		HttpClient.create()
+				.port(disposableServer.port())
+				.wiretap(true)
+				.get()
+				.uri("/test")
+				.responseContent()
+				.aggregate()
+				.asString()
+				.block();
+
+		assertThat(System.getProperty(ReactorNetty.ACCESS_LOG_ENABLED)).isEqualTo("true");
+	}
+
+	@Test
+	public void secondCallToAccessLogOverridesPreviousOne() {
+		disposableServer = HttpServer.create()
+				.port(8080)
+				.handle((req, resp) -> req.receive().then(resp.status(200).send()))
+				.accessLog(true, args -> AccessLog.create("method={}, uri={}", args.method(), args.uri()))
+				.accessLog(false)
+				.wiretap(true)
+				.bindNow();
+
+		HttpClient.create()
+				.port(disposableServer.port())
+				.wiretap(true)
+				.get()
+				.uri("/test")
+				.responseContent()
+				.aggregate()
+				.asString()
+				.block();
+
+		assertThat(System.getProperty(ReactorNetty.ACCESS_LOG_ENABLED)).isEqualTo("false");
 	}
 }
