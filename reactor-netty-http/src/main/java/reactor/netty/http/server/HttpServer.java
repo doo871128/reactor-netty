@@ -35,7 +35,6 @@ import org.reactivestreams.Publisher;
 import reactor.core.publisher.Mono;
 import reactor.netty.Connection;
 import reactor.netty.ConnectionObserver;
-import reactor.netty.ReactorNetty;
 import reactor.netty.channel.ChannelMetricsRecorder;
 import reactor.netty.http.Http2SettingsSpec;
 import reactor.netty.http.HttpProtocol;
@@ -153,7 +152,10 @@ public abstract class HttpServer extends ServerTransport<HttpServer, HttpServerC
 	 * @since 1.0.3
 	 */
 	public final HttpServer accessLog(boolean enable) {
-		return accessLog(enable, AccessLogFactory.createDefault());
+		HttpServer dup = duplicate();
+		dup.configuration().accessLog = null;
+		dup.configuration().accessLogEnabled = enable;
+		return dup;
 	}
 
 	/**
@@ -185,10 +187,10 @@ public abstract class HttpServer extends ServerTransport<HttpServer, HttpServerC
 	 * @since 1.0.3
 	 */
 	public final HttpServer accessLog(boolean enable, AccessLogFactory accessLogFactory) {
-		Objects.requireNonNull(accessLogFactory, "accessLogFactory");
-		System.setProperty(ReactorNetty.ACCESS_LOG_ENABLED, String.valueOf(enable));
+		Objects.requireNonNull(accessLogFactory);
 		HttpServer dup = duplicate();
-		dup.configuration().accessLog = accessLogFactory;
+		dup.configuration().accessLog = enable ? accessLogFactory : null;
+		dup.configuration().accessLogEnabled = enable;
 		return dup;
 	}
 

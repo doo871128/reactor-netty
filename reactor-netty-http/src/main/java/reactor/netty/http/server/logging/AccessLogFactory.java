@@ -18,33 +18,16 @@ package reactor.netty.http.server.logging;
 import java.util.function.Function;
 
 /**
- * A helper class to create a {@link Function function} to provide to {@link reactor.netty.http.server.HttpServer#accessLog(boolean, AccessLogFactory) accessLog} method.
+ * An interface to declare more concisely a {@link Function} that apply an {@link AccessLog} by an
+ * {@link AccessLogArgProvider}.
+ * <p>
+ * Can be used in {@link reactor.netty.http.server.HttpServer#accessLog(boolean, AccessLogFactory) accessLog} method
+ * for example.
  *
  * @author Simon Baslé
  * @author Audrey Neveu
  * @since 1.0.3
  */
 public interface AccessLogFactory extends Function<AccessLogArgProvider, AccessLog> {
-
-	static AccessLogFactory createDefault(){
-		return input -> BaseAccessLogHandler.DEFAULT_ACCESS_LOG.apply(input);
-	 }
-
-	/**
-	 * Helper method to create an access log factory that customizes the format to apply.
-	 * <p>
-	 * The provided formatting {@link Function} is expected to {@link AccessLog#create(String, Object...) create}
-	 * an {@link AccessLog} instance, defining both the String format and a vararg of the relevant arguments, extracted from the
-	 * {@link AccessLogArgProvider}.
-	 * <p>
-	 *
-	 * @param formatFunction the {@link Function} that creates {@link AccessLog} instances, encapsulating the format
-	 * and the extraction of relevant arguments
-	 * @return an access log factory {@link Function} to be used in {@link reactor.netty.http.server.HttpServer#accessLog(boolean, AccessLogFactory)}
-	 * @since 1.0.3
-	 */
-	static AccessLogFactory create(Function<AccessLogArgProvider, AccessLog> formatFunction) {
-		return input -> formatFunction.apply(input);
-	}
 
 }
